@@ -4,87 +4,184 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Battery Cell Monitor · 7S/12S</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0b0f0d;
-    --panel:#121815;
-    --panel-2:#161d19;
-    --line:#243029;
-    --text:#e7f0ea;
-    --dim:#7c9187;
-    --ok:#3ddc84;
-    --warn:#f5b942;
-    --bad:#ff5c5c;
-    --mono: 'JetBrains Mono','SFMono-Regular',Consolas,monospace;
-    --sans: 'Inter', -apple-system, sans-serif;
+    --bg:#0a0d12;
+    --bg-panel-tint: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0);
+    --panel:#11161d;
+    --panel-2:#161d26;
+    --line:#232b36;
+    --line-soft:#1a212a;
+    --text:#eef2f6;
+    --dim:#7c8a9a;
+    --dim-2:#4d5a68;
+    --amber:#ffb648;
+    --amber-dim:#8a6a34;
+    --teal:#45d9c4;
+    --red:#ff5f6d;
+    --violet:#9d8cf5;
+    --mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    --disp:'Space Grotesk', -apple-system, sans-serif;
   }
   *{box-sizing:border-box;}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:var(--sans);
+    font-family:var(--disp);
     min-height:100vh;
+    background-image:var(--bg-panel-tint);
+    background-size:22px 22px;
   }
+
+  /* ---- Header ---- */
   header{
-    padding:28px 24px 16px; border-bottom:1px solid var(--line);
-    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:12px;
+    padding:26px 28px 20px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;
+    background:linear-gradient(180deg, rgba(255,182,72,0.03), transparent 60%);
   }
-  header h1{
-    font-family:var(--mono); font-size:20px; letter-spacing:0.5px; margin:0;
-    display:flex; align-items:center; gap:10px;
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand svg{display:block; width:46px; height:28px;}
+  .brand h1{
+    font-family:var(--disp); font-size:19px; font-weight:600; letter-spacing:0.3px; margin:0; color:var(--text);
   }
-  header h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);display:inline-block;
-    box-shadow:0 0 8px var(--ok);}
-  header .sub{color:var(--dim); font-size:13px; font-family:var(--mono);}
+  .brand .tag{
+    font-family:var(--mono); font-size:11px; color:var(--dim-2); letter-spacing:1.5px; text-transform:uppercase;
+    margin-top:2px;
+  }
+  .sync{
+    font-family:var(--mono); font-size:12px; color:var(--dim); display:flex; align-items:center; gap:8px;
+  }
+  .sync .dot{width:8px;height:8px;border-radius:50%; background:var(--amber); box-shadow:0 0 10px var(--amber);
+    transition:background 0.3s, box-shadow 0.3s;}
+
   #apiWarning{
-    margin:16px 24px; padding:12px 16px; border:1px solid var(--warn); border-radius:6px;
-    background:rgba(245,185,66,0.08); color:var(--warn); font-family:var(--mono); font-size:13px; display:none;
+    margin:18px 28px 0; padding:13px 16px; border:1px solid var(--amber-dim); border-radius:7px;
+    background:rgba(255,182,72,0.06); color:var(--amber); font-family:var(--mono); font-size:12.5px; display:none;
   }
-  main{padding:20px 24px 60px; max-width:1400px; margin:0 auto;}
-  .toolbar{display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center;}
+
+  main{padding:22px 28px 60px; max-width:1440px; margin:0 auto;}
+
+  /* ---- Toolbar ---- */
+  .toolbar{
+    display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap; align-items:center;
+    padding:14px 16px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  }
   .toolbar input, .toolbar select{
-    background:var(--panel); border:1px solid var(--line); color:var(--text);
-    padding:8px 10px; border-radius:5px; font-family:var(--mono); font-size:13px;
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:9px 12px; border-radius:6px; font-family:var(--mono); font-size:13px;
   }
+  .toolbar input::placeholder{color:var(--dim-2);}
   button{
     background:var(--panel-2); border:1px solid var(--line); color:var(--text);
-    padding:8px 14px; border-radius:5px; font-family:var(--mono); font-size:13px; cursor:pointer;
+    padding:9px 15px; border-radius:6px; font-family:var(--mono); font-size:12.5px; cursor:pointer;
+    transition:border-color 0.15s, color 0.15s, background 0.15s;
   }
-  button:hover{border-color:var(--ok); color:var(--ok);}
-  button.primary{background:var(--ok); color:#08130c; border-color:var(--ok); font-weight:600;}
-  button.primary:hover{opacity:0.9; color:#08130c;}
-  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:16px;}
+  button:hover{border-color:var(--teal); color:var(--teal);}
+  button.primary{background:var(--amber); color:#241a08; border-color:var(--amber); font-weight:600;}
+  button.primary:hover{filter:brightness(1.08); color:#241a08; border-color:var(--amber);}
+  .toolbar .spacer{flex:1;}
+  .new-battery-form{display:flex; gap:8px; align-items:center; margin-left:auto;}
+  .new-battery-form input, .new-battery-form select{width:auto;}
+
+  /* ---- Grid / Cards ---- */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr)); gap:18px;}
   .card{
-    background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:0; overflow:hidden;
+    position:relative;
+    box-shadow:0 1px 0 rgba(255,255,255,0.02) inset, 0 12px 24px -16px rgba(0,0,0,0.6);
   }
-  .card-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
-  .card-head .id{font-family:var(--mono); font-size:16px; font-weight:600;}
-  .card-head .grp{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:1px;}
+  .card::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, var(--amber), var(--teal));
+    opacity:0.7;
+  }
+  .card.is-bad::before{ background:linear-gradient(90deg, var(--red), var(--amber)); opacity:0.85; }
+
+  .card-head{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:18px 18px 14px; border-bottom:1px solid var(--line-soft);
+  }
+  .card-head .id{font-family:var(--disp); font-size:17px; font-weight:600; letter-spacing:0.2px;}
+  .card-head .grp{
+    font-size:10.5px; color:var(--violet); text-transform:uppercase; letter-spacing:1.4px; margin-top:3px;
+    font-family:var(--mono);
+  }
   .badge{
-    font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:20px; white-space:nowrap;
+    font-family:var(--mono); font-size:10.5px; padding:4px 10px; border-radius:20px; white-space:nowrap;
+    letter-spacing:0.4px; font-weight:600;
   }
-  .badge.ok{background:rgba(61,220,132,0.12); color:var(--ok); border:1px solid rgba(61,220,132,0.3);}
-  .badge.bad{background:rgba(255,92,92,0.12); color:var(--bad); border:1px solid rgba(255,92,92,0.3);}
-  .stats{display:flex; gap:18px; margin-bottom:12px; font-family:var(--mono);}
-  .stat{font-size:12px; color:var(--dim);}
-  .stat b{display:block; font-size:16px; color:var(--text); font-weight:600;}
-  table{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12.5px;}
-  th{text-align:right; color:var(--dim); font-weight:500; padding:4px 6px; border-bottom:1px solid var(--line);}
-  th:first-child, td:first-child{text-align:left;}
-  td{padding:4px 6px; text-align:right; border-bottom:1px solid rgba(36,48,41,0.5);}
-  td.cellA, td.cellB{cursor:text;}
-  td.cellA:focus, td.cellB:focus{outline:1px solid var(--ok); background:rgba(61,220,132,0.06);}
-  .delta-hi{color:var(--warn);}
-  .delta-crit{color:var(--bad); font-weight:600;}
-  .empty{color:var(--dim); font-family:var(--mono); font-size:13px; padding:40px; text-align:center;}
-  .save-hint{font-size:11px; color:var(--dim); margin-top:8px; font-family:var(--mono);}
-  .new-battery-form{display:flex; gap:8px; align-items:center;}
+  .badge.ok{background:rgba(69,217,196,0.12); color:var(--teal); border:1px solid rgba(69,217,196,0.35);}
+  .badge.bad{background:rgba(255,95,109,0.12); color:var(--red); border:1px solid rgba(255,95,109,0.35);}
+
+  /* readout strip */
+  .readout{
+    display:flex; align-items:baseline; gap:22px; padding:16px 18px;
+    background:var(--panel-2); border-bottom:1px solid var(--line-soft);
+  }
+  .readout .primary-val{font-family:var(--mono); font-size:30px; font-weight:700; color:var(--amber);
+    letter-spacing:0.5px; line-height:1;}
+  .readout .primary-val .unit{font-size:14px; color:var(--dim); margin-left:4px; font-weight:500;}
+  .mini-stats{display:flex; gap:16px; margin-left:auto;}
+  .mini-stat{font-family:var(--mono); text-align:right;}
+  .mini-stat .lbl{font-size:9.5px; color:var(--dim-2); text-transform:uppercase; letter-spacing:1px;}
+  .mini-stat .val{font-size:14px; font-weight:600; margin-top:2px;}
+
+  /* ---- Battery fill icon ---- */
+  .batt-icon{display:flex; align-items:center; gap:10px;}
+  .batt-icon .pct{font-family:var(--mono); font-size:13px; font-weight:600;}
+  .batt-icon svg{display:block;}
+  td.soc-cell{padding:5px 10px;}
+  td.soc-cell .batt-icon{justify-content:flex-end;}
+  td.soc-cell .pct{font-size:10.5px; width:34px; text-align:right;}
+
+  /* table */
+  table{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12px;}
+  thead th{
+    text-align:right; color:var(--dim-2); font-weight:500; padding:9px 14px; font-size:10px;
+    text-transform:uppercase; letter-spacing:0.8px; border-bottom:1px solid var(--line-soft);
+  }
+  th:first-child, td:first-child{text-align:left; padding-left:18px;}
+  td:last-child{padding-right:18px;}
+  tbody tr{transition:background 0.12s;}
+  tbody tr:nth-child(even){background:rgba(255,255,255,0.014);}
+  tbody tr:hover{background:rgba(255,182,72,0.04);}
+  td{padding:7px 14px; text-align:right; color:var(--text);}
+  td.no-cell{color:var(--dim); width:30px;}
+  td.label-cell{color:var(--dim); max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  td.cellA, td.cellB{cursor:text; border-radius:4px;}
+  td.cellA:focus, td.cellB:focus{outline:1.5px solid var(--teal); background:rgba(69,217,196,0.08);}
+  td.delta{position:relative; font-weight:600;}
+  td.delta::before{
+    content:''; position:absolute; left:6px; top:50%; transform:translateY(-50%);
+    width:4px; height:4px; border-radius:50%; background:var(--dim-2);
+  }
+  td.delta.delta-warn{color:var(--amber);}
+  td.delta.delta-warn::before{background:var(--amber);}
+  td.delta.delta-crit{color:var(--red);}
+  td.delta.delta-crit::before{background:var(--red); box-shadow:0 0 6px var(--red);}
+
+  .card-foot{padding:10px 18px; font-size:10.5px; color:var(--dim-2); font-family:var(--mono);}
+
+  .empty{
+    color:var(--dim); font-family:var(--mono); font-size:13px; padding:60px 20px; text-align:center;
+    grid-column:1/-1; border:1px dashed var(--line); border-radius:10px;
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1><span class="dot" id="statusDot"></span>BATTERY CELL MONITOR · 7S/12S</h1>
-  <div class="sub" id="lastSync">belum sinkron</div>
+  <div class="brand">
+    <svg viewBox="0 0 120 60" fill="none">
+      <polyline points="0,45 18,45 26,15 34,52 42,30 50,45 120,45" stroke="var(--amber)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>Battery Cell Monitor</h1>
+      <div class="tag">7S · 12S telemetry</div>
+    </div>
+  </div>
+  <div class="sync"><span class="dot" id="statusDot"></span><span id="lastSync">belum sinkron</span></div>
 </header>
 
 <div id="apiWarning">
@@ -97,13 +194,13 @@
     <select id="groupFilter"><option value="">Semua grup</option></select>
     <button id="refreshBtn">↻ Refresh</button>
     <div class="new-battery-form">
-      <input type="text" id="newBatteryId" placeholder="ID baterai baru (mis. NEW-01)" style="width:180px">
-      <input type="text" id="newBatteryGroup" placeholder="Grup" style="width:100px">
+      <input type="text" id="newBatteryId" placeholder="ID baterai baru" style="width:150px">
+      <input type="text" id="newBatteryGroup" placeholder="Grup" style="width:90px">
       <select id="newBatteryCellCount">
-        <option value="7">7S (7 sel)</option>
-        <option value="12" selected>12S (12 sel)</option>
+        <option value="7">7S</option>
+        <option value="12" selected>12S</option>
       </select>
-      <button id="addBatteryBtn">+ Tambah Baterai</button>
+      <button class="primary" id="addBatteryBtn">+ Tambah Baterai</button>
     </div>
   </div>
 
@@ -122,6 +219,68 @@ const CELL_DELTA_CRIT = 0.06;
 
 let allBatteries = [];
 
+// Standard resting-voltage curve for a single LiPo cell (volt -> %).
+// Sorted high to low; we linearly interpolate between the nearest points.
+const LIPO_CURVE = [
+  [4.20,100],[4.15,95],[4.11,90],[4.08,85],[4.02,80],[3.98,75],[3.95,70],
+  [3.91,65],[3.87,60],[3.85,55],[3.84,50],[3.82,45],[3.80,40],[3.79,35],
+  [3.77,30],[3.75,25],[3.73,20],[3.71,15],[3.69,10],[3.61,5],[3.27,0]
+];
+
+function voltageToPercent(v){
+  if(isNaN(v)) return 0;
+  if(v >= LIPO_CURVE[0][0]) return 100;
+  if(v <= LIPO_CURVE[LIPO_CURVE.length-1][0]) return 0;
+  for(let i=0;i<LIPO_CURVE.length-1;i++){
+    const [vHi,pHi] = LIPO_CURVE[i];
+    const [vLo,pLo] = LIPO_CURVE[i+1];
+    if(v <= vHi && v >= vLo){
+      const t = (v - vLo) / (vHi - vLo);
+      return Math.round(pLo + t * (pHi - pLo));
+    }
+  }
+  return 0;
+}
+
+function socColor(pct){
+  if(pct <= 20) return '#ff5f6d';
+  if(pct <= 40) return '#ff9a45';
+  if(pct <= 60) return '#ffcf45';
+  if(pct <= 80) return '#c7dd45';
+  return '#5ed88a';
+}
+
+// Renders a segmented battery icon (5 bars + nub), in the spirit of the
+// classic charge-level infographic, filled/colored by percent.
+function batteryIconHTML(pct, height, compact){
+  pct = Math.max(0, Math.min(100, pct));
+  const segCount = 5;
+  const filled = Math.round((pct/100) * segCount);
+  const color = socColor(pct);
+  const w = Math.round(height * 0.52);
+  const h = height;
+  const bodyTop = h*0.14, bodyBottom = h*0.98, bodyH = bodyBottom-bodyTop;
+  const gap = bodyH*0.06;
+  const segH = (bodyH - gap*(segCount-1)) / segCount;
+  const pad = w*0.12;
+  let bars = '';
+  for(let i=0;i<segCount;i++){
+    const fromBottom = i;
+    const y = bodyBottom - segH - fromBottom*(segH+gap);
+    const isFilled = fromBottom < filled;
+    bars += `<rect x="${pad}" y="${y.toFixed(2)}" width="${(w-2*pad).toFixed(2)}" height="${segH.toFixed(2)}" rx="1.4"
+      fill="${isFilled ? color : 'rgba(255,255,255,0.06)'}" />`;
+  }
+  const nubW = w*0.36, nubH = h*0.07;
+  const svg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect x="${(w-nubW)/2}" y="0" width="${nubW}" height="${nubH}" rx="1.2" fill="var(--dim-2)"/>
+    <rect x="1" y="${bodyTop}" width="${w-2}" height="${bodyH}" rx="4" fill="none" stroke="var(--dim-2)" stroke-width="1.6"/>
+    ${bars}
+  </svg>`;
+  const label = compact ? `<span class="pct">${pct}%</span>` : `<span class="pct" style="color:${color};font-size:15px">${pct}%</span>`;
+  return `<span class="batt-icon">${compact ? svg + label : label + svg}</span>`;
+}
+
 function apiConfigured(){
   return API_URL && API_URL.indexOf('PASTE_YOUR') === -1;
 }
@@ -132,7 +291,7 @@ async function loadData(){
     document.getElementById('grid').innerHTML = '<div class="empty">Sambungkan API_URL dulu untuk memuat data baterai.</div>';
     return;
   }
-  document.getElementById('statusDot').style.background = '#f5b942';
+  document.getElementById('statusDot').style.background = 'var(--amber)';
   try{
     const res = await fetch(API_URL + '?action=list');
     const data = await res.json();
@@ -140,10 +299,11 @@ async function loadData(){
     allBatteries = data.batteries;
     populateGroupFilter();
     render();
-    document.getElementById('statusDot').style.background = 'var(--ok)';
+    document.getElementById('statusDot').style.background = 'var(--teal)';
+    document.getElementById('statusDot').style.boxShadow = '0 0 10px var(--teal)';
     document.getElementById('lastSync').textContent = 'sinkron ' + new Date().toLocaleTimeString('id-ID');
   }catch(err){
-    document.getElementById('statusDot').style.background = 'var(--bad)';
+    document.getElementById('statusDot').style.background = 'var(--red)';
     document.getElementById('grid').innerHTML = '<div class="empty">Gagal memuat: '+err.message+'</div>';
   }
 }
@@ -174,30 +334,32 @@ function render(){
 
   grid.innerHTML = list.map(batteryCard).join('');
 
-  // wire up editable cells
   grid.querySelectorAll('td.cellA, td.cellB').forEach(td=>{
+    td.setAttribute('contenteditable','true');
     td.addEventListener('blur', onCellEdit);
     td.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); td.blur(); }});
   });
 }
 
 function batteryCard(b){
-  const badgeClass = b.perlu_balancing ? 'bad' : 'ok';
-  const badgeText = b.perlu_balancing ? '⚠ PERLU BALANCING' : '✓ NORMAL';
+  const isBad = b.perlu_balancing;
+  const badgeClass = isBad ? 'bad' : 'ok';
+  const badgeText = isBad ? '⚠ PERLU BALANCING' : '✓ NORMAL';
   const rows = b.cells.map(c=>{
     let deltaClass = '';
     if(c.selisih_ab >= CELL_DELTA_CRIT) deltaClass = 'delta-crit';
-    else if(c.selisih_ab >= CELL_DELTA_WARN) deltaClass = 'delta-hi';
+    else if(c.selisih_ab >= CELL_DELTA_WARN) deltaClass = 'delta-warn';
     return `<tr data-battery="${b.battery_id}" data-no="${c.no_sel}" data-group="${b.group}" data-label="${c.label}">
-      <td>${c.no_sel}</td>
-      <td>${c.label||''}</td>
-      <td class="cellA" contenteditable="true">${c.voltage_a.toFixed(2)}</td>
-      <td class="cellB" contenteditable="true">${c.voltage_b.toFixed(2)}</td>
-      <td class="${deltaClass}">${c.selisih_ab.toFixed(3)}</td>
+      <td class="no-cell">${c.no_sel}</td>
+      <td class="label-cell">${c.label||'—'}</td>
+      <td class="cellA">${c.voltage_a.toFixed(2)}</td>
+      <td class="cellB">${c.voltage_b.toFixed(2)}</td>
+      <td class="delta ${deltaClass}">${c.selisih_ab.toFixed(3)}</td>
+      <td class="soc-cell">${batteryIconHTML(voltageToPercent(c.avg), 22, true)}</td>
     </tr>`;
   }).join('');
 
-  return `<div class="card">
+  return `<div class="card ${isBad?'is-bad':''}">
     <div class="card-head">
       <div>
         <div class="id">${b.battery_id}</div>
@@ -205,17 +367,20 @@ function batteryCard(b){
       </div>
       <span class="badge ${badgeClass}">${badgeText}</span>
     </div>
-    <div class="stats">
-      <div class="stat">Total<b>${b.total_voltage.toFixed(2)} V</b></div>
-      <div class="stat">Max sel<b>${b.max_voltage.toFixed(2)} V</b></div>
-      <div class="stat">Min sel<b>${b.min_voltage.toFixed(2)} V</b></div>
-      <div class="stat">Selisih pack<b style="color:${b.perlu_balancing?'var(--bad)':'var(--ok)'}">${b.selisih_pack.toFixed(3)} V</b></div>
+    <div class="readout">
+      <div class="primary-val">${b.total_voltage.toFixed(2)}<span class="unit">V total</span></div>
+      ${batteryIconHTML(voltageToPercent(b.total_voltage / b.cell_count), 46)}
+      <div class="mini-stats">
+        <div class="mini-stat"><div class="lbl">Max</div><div class="val">${b.max_voltage.toFixed(2)}</div></div>
+        <div class="mini-stat"><div class="lbl">Min</div><div class="val">${b.min_voltage.toFixed(2)}</div></div>
+        <div class="mini-stat"><div class="lbl">Selisih pack</div><div class="val" style="color:${isBad?'var(--red)':'var(--teal)'}">${b.selisih_pack.toFixed(3)}</div></div>
+      </div>
     </div>
     <table>
-      <thead><tr><th>Sel</th><th>Label/Drone</th><th>Volt A</th><th>Volt B</th><th>Selisih A-B</th></tr></thead>
+      <thead><tr><th>Sel</th><th>Label</th><th>Volt A</th><th>Volt B</th><th>Δ A−B</th><th>SOC</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <div class="save-hint">Klik sel Volt A/B untuk edit, tekan Enter untuk simpan.</div>
+    <div class="card-foot">Klik sel Volt A/B untuk edit → Enter untuk simpan</div>
   </div>`;
 }
 
@@ -242,7 +407,6 @@ async function onCellEdit(e){
     });
     const data = await res.json();
     if(!data.ok) throw new Error(data.error);
-    // update local cache + re-render just this battery's numbers
     const idx = allBatteries.findIndex(b=>b.battery_id===battery_id);
     if(idx>-1) allBatteries[idx] = data.battery;
     render();
