@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Battery Cell Monitor · 12S</title>
+<title>Battery Cell Monitor · 7S/12S</title>
 <style>
   :root{
     --bg:#0b0f0d;
@@ -83,7 +83,7 @@
 <body>
 
 <header>
-  <h1><span class="dot" id="statusDot"></span>BATTERY CELL MONITOR · 12S</h1>
+  <h1><span class="dot" id="statusDot"></span>BATTERY CELL MONITOR · 7S/12S</h1>
   <div class="sub" id="lastSync">belum sinkron</div>
 </header>
 
@@ -99,7 +99,11 @@
     <div class="new-battery-form">
       <input type="text" id="newBatteryId" placeholder="ID baterai baru (mis. NEW-01)" style="width:180px">
       <input type="text" id="newBatteryGroup" placeholder="Grup" style="width:100px">
-      <button id="addBatteryBtn">+ Tambah Baterai (12 sel kosong)</button>
+      <select id="newBatteryCellCount">
+        <option value="7">7S (7 sel)</option>
+        <option value="12" selected>12S (12 sel)</option>
+      </select>
+      <button id="addBatteryBtn">+ Tambah Baterai</button>
     </div>
   </div>
 
@@ -252,12 +256,13 @@ async function onCellEdit(e){
 async function addBattery(){
   const id = document.getElementById('newBatteryId').value.trim();
   const group = document.getElementById('newBatteryGroup').value.trim() || 'NEW';
+  const cell_count = Number(document.getElementById('newBatteryCellCount').value);
   if(!id){ alert('Isi ID baterai dulu'); return; }
   try{
     const res = await fetch(API_URL, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({ action:'createBattery', battery_id:id, group })
+      body: JSON.stringify({ action:'createBattery', battery_id:id, group, cell_count })
     });
     const data = await res.json();
     if(!data.ok) throw new Error(data.error);
