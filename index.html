@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Battery Cell Monitor · 12S</title>
+<style>
+  :root{
+    --bg:#0b0f0d;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --line:#243029;
+    --text:#e7f0ea;
+    --dim:#7c9187;
+    --ok:#3ddc84;
+    --warn:#f5b942;
+    --bad:#ff5c5c;
+    --mono: 'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+  }
+  header{
+    padding:28px 24px 16px; border-bottom:1px solid var(--line);
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  }
+  header h1{
+    font-family:var(--mono); font-size:20px; letter-spacing:0.5px; margin:0;
+    display:flex; align-items:center; gap:10px;
+  }
+  header h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);display:inline-block;
+    box-shadow:0 0 8px var(--ok);}
+  header .sub{color:var(--dim); font-size:13px; font-family:var(--mono);}
+  #apiWarning{
+    margin:16px 24px; padding:12px 16px; border:1px solid var(--warn); border-radius:6px;
+    background:rgba(245,185,66,0.08); color:var(--warn); font-family:var(--mono); font-size:13px; display:none;
+  }
+  main{padding:20px 24px 60px; max-width:1400px; margin:0 auto;}
+  .toolbar{display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center;}
+  .toolbar input, .toolbar select{
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:8px 10px; border-radius:5px; font-family:var(--mono); font-size:13px;
+  }
+  button{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:8px 14px; border-radius:5px; font-family:var(--mono); font-size:13px; cursor:pointer;
+  }
+  button:hover{border-color:var(--ok); color:var(--ok);}
+  button.primary{background:var(--ok); color:#08130c; border-color:var(--ok); font-weight:600;}
+  button.primary:hover{opacity:0.9; color:#08130c;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:16px;}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px;
+  }
+  .card-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
+  .card-head .id{font-family:var(--mono); font-size:16px; font-weight:600;}
+  .card-head .grp{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:1px;}
+  .badge{
+    font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:20px; white-space:nowrap;
+  }
+  .badge.ok{background:rgba(61,220,132,0.12); color:var(--ok); border:1px solid rgba(61,220,132,0.3);}
+  .badge.bad{background:rgba(255,92,92,0.12); color:var(--bad); border:1px solid rgba(255,92,92,0.3);}
+  .stats{display:flex; gap:18px; margin-bottom:12px; font-family:var(--mono);}
+  .stat{font-size:12px; color:var(--dim);}
+  .stat b{display:block; font-size:16px; color:var(--text); font-weight:600;}
+  table{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12.5px;}
+  th{text-align:right; color:var(--dim); font-weight:500; padding:4px 6px; border-bottom:1px solid var(--line);}
+  th:first-child, td:first-child{text-align:left;}
+  td{padding:4px 6px; text-align:right; border-bottom:1px solid rgba(36,48,41,0.5);}
+  td.cellA, td.cellB{cursor:text;}
+  td.cellA:focus, td.cellB:focus{outline:1px solid var(--ok); background:rgba(61,220,132,0.06);}
+  .delta-hi{color:var(--warn);}
+  .delta-crit{color:var(--bad); font-weight:600;}
+  .empty{color:var(--dim); font-family:var(--mono); font-size:13px; padding:40px; text-align:center;}
+  .save-hint{font-size:11px; color:var(--dim); margin-top:8px; font-family:var(--mono);}
+  .new-battery-form{display:flex; gap:8px; align-items:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="dot" id="statusDot"></span>BATTERY CELL MONITOR · 12S</h1>
+  <div class="sub" id="lastSync">belum sinkron</div>
+</header>
+
+<div id="apiWarning">
+  ⚠ API_URL belum diisi. Buka index.html, ganti konstanta <code>API_URL</code> dengan URL deployment Apps Script kamu (diakhiri /exec).
+</div>
+
+<main>
+  <div class="toolbar">
+    <input type="text" id="filterInput" placeholder="Cari Battery ID / drone / label...">
+    <select id="groupFilter"><option value="">Semua grup</option></select>
+    <button id="refreshBtn">↻ Refresh</button>
+    <div class="new-battery-form">
+      <input type="text" id="newBatteryId" placeholder="ID baterai baru (mis. NEW-01)" style="width:180px">
+      <input type="text" id="newBatteryGroup" placeholder="Grup" style="width:100px">
+      <button id="addBatteryBtn">+ Tambah Baterai (12 sel kosong)</button>
+    </div>
+  </div>
+
+  <div id="grid" class="grid">
+    <div class="empty">Memuat data...</div>
+  </div>
+</main>
+
+<script>
+// === GANTI dengan URL Web App Apps Script kamu (Deploy > New deployment > Web app) ===
+const API_URL = 'https://script.google.com/macros/s/AKfycbyGP6K1BIiUX2ZXzstL_TyOh1BLHvRScRT1XNXxbSHsispUIWsADnCKEowuAyQ8i1GH/exec';
+
+const BALANCE_THRESHOLD = 0.05; // volt, ambang selisih pack dianggap perlu balancing
+const CELL_DELTA_WARN = 0.03;   // selisih A-B per sel dianggap perlu perhatian
+const CELL_DELTA_CRIT = 0.06;
+
+let allBatteries = [];
+
+function apiConfigured(){
+  return API_URL && API_URL.indexOf('PASTE_YOUR') === -1;
+}
+
+async function loadData(){
+  if(!apiConfigured()){
+    document.getElementById('apiWarning').style.display = 'block';
+    document.getElementById('grid').innerHTML = '<div class="empty">Sambungkan API_URL dulu untuk memuat data baterai.</div>';
+    return;
+  }
+  document.getElementById('statusDot').style.background = '#f5b942';
+  try{
+    const res = await fetch(API_URL + '?action=list');
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || 'gagal memuat');
+    allBatteries = data.batteries;
+    populateGroupFilter();
+    render();
+    document.getElementById('statusDot').style.background = 'var(--ok)';
+    document.getElementById('lastSync').textContent = 'sinkron ' + new Date().toLocaleTimeString('id-ID');
+  }catch(err){
+    document.getElementById('statusDot').style.background = 'var(--bad)';
+    document.getElementById('grid').innerHTML = '<div class="empty">Gagal memuat: '+err.message+'</div>';
+  }
+}
+
+function populateGroupFilter(){
+  const sel = document.getElementById('groupFilter');
+  const groups = [...new Set(allBatteries.map(b=>b.group))];
+  sel.innerHTML = '<option value="">Semua grup</option>' + groups.map(g=>`<option value="${g}">${g}</option>`).join('');
+}
+
+function render(){
+  const filterText = document.getElementById('filterInput').value.toLowerCase();
+  const groupSel = document.getElementById('groupFilter').value;
+  const grid = document.getElementById('grid');
+
+  let list = allBatteries.filter(b=>{
+    const matchesText = !filterText ||
+      b.battery_id.toLowerCase().includes(filterText) ||
+      b.cells.some(c=>(c.label||'').toLowerCase().includes(filterText));
+    const matchesGroup = !groupSel || b.group === groupSel;
+    return matchesText && matchesGroup;
+  });
+
+  if(list.length === 0){
+    grid.innerHTML = '<div class="empty">Tidak ada baterai yang cocok.</div>';
+    return;
+  }
+
+  grid.innerHTML = list.map(batteryCard).join('');
+
+  // wire up editable cells
+  grid.querySelectorAll('td.cellA, td.cellB').forEach(td=>{
+    td.addEventListener('blur', onCellEdit);
+    td.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); td.blur(); }});
+  });
+}
+
+function batteryCard(b){
+  const badgeClass = b.perlu_balancing ? 'bad' : 'ok';
+  const badgeText = b.perlu_balancing ? '⚠ PERLU BALANCING' : '✓ NORMAL';
+  const rows = b.cells.map(c=>{
+    let deltaClass = '';
+    if(c.selisih_ab >= CELL_DELTA_CRIT) deltaClass = 'delta-crit';
+    else if(c.selisih_ab >= CELL_DELTA_WARN) deltaClass = 'delta-hi';
+    return `<tr data-battery="${b.battery_id}" data-no="${c.no_sel}" data-group="${b.group}" data-label="${c.label}">
+      <td>${c.no_sel}</td>
+      <td>${c.label||''}</td>
+      <td class="cellA" contenteditable="true">${c.voltage_a.toFixed(2)}</td>
+      <td class="cellB" contenteditable="true">${c.voltage_b.toFixed(2)}</td>
+      <td class="${deltaClass}">${c.selisih_ab.toFixed(3)}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="card">
+    <div class="card-head">
+      <div>
+        <div class="id">${b.battery_id}</div>
+        <div class="grp">${b.group} · ${b.cell_count}S</div>
+      </div>
+      <span class="badge ${badgeClass}">${badgeText}</span>
+    </div>
+    <div class="stats">
+      <div class="stat">Total<b>${b.total_voltage.toFixed(2)} V</b></div>
+      <div class="stat">Max sel<b>${b.max_voltage.toFixed(2)} V</b></div>
+      <div class="stat">Min sel<b>${b.min_voltage.toFixed(2)} V</b></div>
+      <div class="stat">Selisih pack<b style="color:${b.perlu_balancing?'var(--bad)':'var(--ok)'}">${b.selisih_pack.toFixed(3)} V</b></div>
+    </div>
+    <table>
+      <thead><tr><th>Sel</th><th>Label/Drone</th><th>Volt A</th><th>Volt B</th><th>Selisih A-B</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="save-hint">Klik sel Volt A/B untuk edit, tekan Enter untuk simpan.</div>
+  </div>`;
+}
+
+async function onCellEdit(e){
+  const td = e.target;
+  const tr = td.closest('tr');
+  const battery_id = tr.dataset.battery;
+  const group = tr.dataset.group;
+  const no_sel = Number(tr.dataset.no);
+  const label = tr.dataset.label;
+  const a = parseFloat(tr.querySelector('.cellA').textContent);
+  const bV = parseFloat(tr.querySelector('.cellB').textContent);
+  if(isNaN(a) || isNaN(bV)) return;
+
+  td.style.opacity = '0.5';
+  try{
+    const res = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        action:'saveCell', battery_id, group, no_sel, label,
+        voltage_a:a, voltage_b:bV
+      })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error);
+    // update local cache + re-render just this battery's numbers
+    const idx = allBatteries.findIndex(b=>b.battery_id===battery_id);
+    if(idx>-1) allBatteries[idx] = data.battery;
+    render();
+  }catch(err){
+    alert('Gagal menyimpan: '+err.message);
+  }finally{
+    td.style.opacity = '1';
+  }
+}
+
+async function addBattery(){
+  const id = document.getElementById('newBatteryId').value.trim();
+  const group = document.getElementById('newBatteryGroup').value.trim() || 'NEW';
+  if(!id){ alert('Isi ID baterai dulu'); return; }
+  try{
+    const res = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'createBattery', battery_id:id, group })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error);
+    document.getElementById('newBatteryId').value='';
+    await loadData();
+  }catch(err){
+    alert('Gagal menambah baterai: '+err.message);
+  }
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadData);
+document.getElementById('filterInput').addEventListener('input', render);
+document.getElementById('groupFilter').addEventListener('change', render);
+document.getElementById('addBatteryBtn').addEventListener('click', addBattery);
+
+loadData();
+</script>
+</body>
+</html>
